@@ -13,14 +13,21 @@ var languageTableFilter *gtk.TreeModelFilter
 var textTableModel *gtk.ListStore
 
 const (
-	COLUMN_TITLE = iota
+	COLUMN_ID = iota
+	COLUMN_TITLE
 	COLUMN_LANGUAGE
 	COLUMN_UNKNOWN_VOCABS
 )
 
 func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	treeView, _ := gtk.TreeViewNew()
-	listStore, _ := gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_INT)
+
+	listStore, _ := gtk.ListStoreNew(
+		glib.TYPE_STRING,
+		glib.TYPE_STRING,
+		glib.TYPE_STRING,
+		glib.TYPE_INT,
+	)
 	textTableModel = listStore
 
 	filter, _ := listStore.FilterNew(nil)
@@ -33,6 +40,29 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	treeView.AppendColumn(createColumn("Language", COLUMN_LANGUAGE))
 	treeView.AppendColumn(createColumn("Unknown Vocabulary", COLUMN_UNKNOWN_VOCABS))
 
+	treeView.Connect("row-activated", func(tv *gtk.TreeView, path *gtk.TreePath, column *gtk.TreeViewColumn) {
+		iter, _ := listStore.GetIter(path)
+		v, _ := listStore.GetValue(iter, COLUMN_ID)
+		gv, _ := v.GoValue()
+		textId := gv.(string)
+
+		win, _ := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
+		win.SetTitle("Popup")
+
+		scrollView, _ := gtk.ScrolledWindowNew(nil, nil)
+		win.Add(scrollView)
+
+		textView, _ := gtk.TextViewNew()
+		buffer, _ := textView.GetBuffer()
+
+		text, _ := givematlib.LoadText(textId)
+		buffer.SetText(text.Fulltext)
+		textView.SetEditable(false)
+		scrollView.Add(textView)
+
+		win.ShowAll()
+	})
+
 	// Just for testing
 	combinedColumn, _ := gtk.TreeViewColumnNew()
 	combinedColumn.SetTitle("Two fields")
@@ -40,8 +70,8 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	secondRenderer, _ := gtk.CellRendererTextNew()
 	combinedColumn.PackStart(firstRenderer, false)
 	combinedColumn.PackStart(secondRenderer, false)
-	combinedColumn.AddAttribute(firstRenderer, "text", 1)
-	combinedColumn.AddAttribute(secondRenderer, "text", 0)
+	combinedColumn.AddAttribute(firstRenderer, "text", COLUMN_LANGUAGE)
+	combinedColumn.AddAttribute(secondRenderer, "text", COLUMN_TITLE)
 	treeView.AppendColumn(combinedColumn)
 
 	selection, _ := treeView.GetSelection()
