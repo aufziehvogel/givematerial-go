@@ -7,7 +7,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
-// Initialize GTK without parsing any command line arguments.
+var applicationStatusBar *gtk.Statusbar
 
 func Init(config *givematlib.ApplicationConfig) {
 	gtk.Init(nil)
@@ -29,20 +29,29 @@ func Init(config *givematlib.ApplicationConfig) {
 	win.Add(b)
 	b.SetVExpand(true)
 
+	// TODO: Re-generate table when learnables data has been updated
+	learnablesStatus := givematlib.StatusCacheNew()
+
 	texts, err := givematlib.ListTexts()
 	if err != nil {
 		panic(err)
 	}
+
+	languages := make(map[string]struct{})
 	for _, textId := range texts {
 		text, err := givematlib.LoadText(textId)
 		if err != nil {
 			log.Panic("Could not load text:", err)
 		}
+
+		languages[text.Language] = struct{}{}
+		knownLearnables, _ := learnablesStatus.ReadLearnableStatus(text.Language)
+
 		iter := listStore.Append()
 		listStore.Set(iter, []int{0, 1, 2}, []interface{}{
 			text.Title,
 			text.Language,
-			text.Unknown([]string{}),
+			len(text.Unknown(knownLearnables)),
 		})
 	}
 
@@ -51,7 +60,7 @@ func Init(config *givematlib.ApplicationConfig) {
 	scrollableTreelist.SetVExpand(true)
 
 	bSelection, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
-	for _, language := range []string{"en", "ja", "es"} {
+	for language, _ := range languages {
 		button, _ := gtk.ButtonNewWithLabel(language)
 
 		button.Connect("clicked", func(obj *gtk.Button) {
@@ -61,9 +70,21 @@ func Init(config *givematlib.ApplicationConfig) {
 		})
 		bSelection.Add(button)
 	}
-	b.PackStart(createMenuBar(), false, false, 0)
+	menuBar, err := createMenuBar(config)
+	if err != nil {
+		log.Panic("Could not create menu bar", err)
+	}
+
+	statusBar, err := gtk.StatusbarNew()
+	if err != nil {
+		log.Panic("Could not create status bar", err)
+	}
+	applicationStatusBar = statusBar
+
+	b.PackStart(menuBar, false, false, 0)
 	b.PackStart(bSelection, false, false, 0)
 	b.PackStart(scrollableTreelist, true, true, 0)
+	b.PackStart(statusBar, false, false, 0)
 
 	// Set the default window size.
 	win.SetDefaultSize(800, 600)

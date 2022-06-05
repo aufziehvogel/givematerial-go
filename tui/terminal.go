@@ -35,62 +35,12 @@ func updateProviders(
 ) error {
 	defer close(messageChan)
 
-	err := updateAnki(config.AnkiFile, config.AnkiDecksForLanguage, messageChan)
+	err := givematlib.UpdateAnki(config.AnkiFile, config.AnkiDecksForLanguage, messageChan, false)
 	if err != nil {
 		return err
 	}
 
-	return updateWanikani(config.WanikaniApiToken, messageChan)
-}
-
-func updateWanikani(apiToken string, messageChan chan<- string) error {
-	w := givematlib.NewWanikaniProvider(apiToken)
-
-	messageChan <- "Reading status from Wanikani"
-	learnables, err := w.FetchLearnables()
-	if err != nil {
-		return err
-	}
-
-	messageChan <- "Saving Wanikani status"
-	err = givematlib.SaveLearnableStatus("wanikani", "ja", learnables)
-	messageChan <- "Wanikani status update complete"
-	return err
-}
-
-func updateAnki(
-	ankiFile string,
-	decksForLanguage map[string][]string,
-	messageChan chan<- string,
-) error {
-	for language, decks := range decksForLanguage {
-		p := givematlib.AnkiProvider{
-			Decks:    decks,
-			AnkiFile: ankiFile,
-		}
-		messageChan <- fmt.Sprintf(
-			"Reading status from Anki for %s (decks: %v)",
-			language,
-			decks,
-		)
-		learnables, err := p.FetchLearnables()
-		if err != nil {
-			return err
-		}
-
-		messageChan <- fmt.Sprintf(
-			"Saving Anki status for %s (%d words)",
-			language,
-			len(learnables),
-		)
-		err = givematlib.SaveLearnableStatus("anki", language, learnables)
-		if err != nil {
-			return err
-		}
-		messageChan <- "Anki status update complete"
-	}
-
-	return nil
+	return givematlib.UpdateWanikani(config.WanikaniApiToken, messageChan, false)
 }
 
 func newEventHandler(

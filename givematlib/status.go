@@ -8,6 +8,30 @@ import (
 	"strings"
 )
 
+type StatusCache struct {
+	cache map[string][]string
+}
+
+func StatusCacheNew() StatusCache {
+	return StatusCache{
+		cache: make(map[string][]string),
+	}
+}
+
+func (sc StatusCache) ReadLearnableStatus(language string) ([]string, error) {
+	if val, ok := sc.cache[language]; ok {
+		return val, nil
+	} else {
+		learnables, err := ReadLearnableStatus(language)
+		if err != nil {
+			return nil, err
+		}
+
+		sc.cache[language] = learnables
+		return learnables, nil
+	}
+}
+
 func SaveLearnableStatus(
 	name string,
 	language string,
