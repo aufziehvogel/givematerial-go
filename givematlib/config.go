@@ -1,4 +1,4 @@
-package main
+package givematlib
 
 import (
 	"bufio"
@@ -6,19 +6,19 @@ import (
 	"os"
 )
 
-type applicationConfig struct {
+type ApplicationConfig struct {
 	AnkiFile             string              `json:"anki_file"`
 	AnkiDecksForLanguage map[string][]string `json:"anki_decks"`
 	WanikaniApiToken     string              `json:"wanikani_api_token"`
 }
 
-func loadConfig(path string) (applicationConfig, error) {
-	var config applicationConfig
+func LoadConfig(path string) (ApplicationConfig, error) {
+	var config ApplicationConfig
 
 	file, err := os.Open(path)
 
 	if err != nil {
-		return applicationConfig{}, err
+		return ApplicationConfig{}, err
 	}
 	defer file.Close()
 
