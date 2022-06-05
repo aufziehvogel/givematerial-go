@@ -43,12 +43,12 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	treeView.AppendColumn(createColumn("Unknown Vocabulary", COLUMN_UNKNOWN_VOCAB_COUNT))
 
 	treeView.Connect("row-activated", func(tv *gtk.TreeView, path *gtk.TreePath, column *gtk.TreeViewColumn) {
-		iter, _ := listStore.GetIter(path)
-		v, _ := listStore.GetValue(iter, COLUMN_ID)
+		iter, _ := filter.GetIter(path)
+		v, _ := filter.GetValue(iter, COLUMN_ID)
 		gv, _ := v.GoValue()
 		textId := gv.(string)
 
-		v2, _ := listStore.GetValue(iter, COLUMN_UNKNOWN_VOCAB)
+		v2, _ := filter.GetValue(iter, COLUMN_UNKNOWN_VOCAB)
 		gv2, _ := v2.GoValue()
 		unknownVocab := gv2.(string)
 
