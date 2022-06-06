@@ -30,6 +30,17 @@ func createFileMenu() (*gtk.Menu, *gtk.MenuItem, error) {
 		return nil, nil, err
 	}
 
+	newItem, err := gtk.MenuItemNewWithLabel("New Text")
+	if err != nil {
+		return nil, nil, err
+	}
+	newItem.Connect("activate", func() {
+		if win, err := createNewTextWindow(); err == nil {
+			win.ShowAll()
+		}
+	})
+	menu.Append(newItem)
+
 	quitItem, err := gtk.MenuItemNewWithLabel("Quit")
 	if err != nil {
 		return nil, nil, err
@@ -47,6 +58,18 @@ func createActionMenu(config *givematlib.ApplicationConfig) (*gtk.Menu, *gtk.Men
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: Handle this correctly by emitting events
+	refreshTableItem, err := gtk.MenuItemNewWithLabel("Refresh Table")
+	if err != nil {
+		return nil, nil, err
+	}
+	refreshTableItem.Connect("activate", func() {
+		log.Print("Refreshing table")
+
+		updateLanguagesTable(textTableModel)
+	})
+	menu.Append(refreshTableItem)
 
 	updateAnkiItem, err := gtk.MenuItemNewWithLabel("Update Anki data")
 	if err != nil {

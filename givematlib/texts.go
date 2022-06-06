@@ -1,7 +1,9 @@
 package givematlib
 
 import (
+	"crypto/sha256"
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -27,10 +29,6 @@ func (t *Text) Unknown(knownLearnables []string) (unknown []string) {
 		}
 	}
 	return
-}
-
-func Test() string {
-	return "a"
 }
 
 func ListTexts() ([]string, error) {
@@ -73,6 +71,13 @@ func LoadText(textID string) (Text, error) {
 	return t, nil
 }
 
-func saveText(text Text) {
+func SaveText(text Text) error {
+	textID := fmt.Sprintf("%x", sha256.Sum256([]byte(text.Title)))
+	xmlFilePath, err := InDataDir("texts", textID)
+	if err != nil {
+		return err
+	}
 
+	xmlString, _ := xml.MarshalIndent(text, "", " ")
+	return ioutil.WriteFile(xmlFilePath, xmlString, 0644)
 }

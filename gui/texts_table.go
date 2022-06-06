@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"givematerial/givematlib"
 	"log"
 
 	"github.com/gotk3/gotk3/glib"
@@ -9,6 +10,7 @@ import (
 
 var selectedLanguage string
 var languageTableFilter *gtk.TreeModelFilter
+var textTableModel *gtk.ListStore
 
 const (
 	COLUMN_TITLE = iota
@@ -19,6 +21,7 @@ const (
 func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	treeView, _ := gtk.TreeViewNew()
 	listStore, _ := gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_INT)
+	textTableModel = listStore
 
 	filter, _ := listStore.FilterNew(nil)
 	filter.SetVisibleFunc(filterByLanguage)
@@ -45,6 +48,32 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	selection.SetMode(gtk.SELECTION_SINGLE)
 
 	return treeView, listStore
+}
+
+func updateLanguagesTable(textData *gtk.ListStore) {
+	textData.Clear()
+
+	texts, err := givematlib.ListTexts()
+	if err != nil {
+		panic(err)
+	}
+
+	learnablesStatus := givematlib.StatusCacheNew()
+	for _, textId := range texts {
+		text, err := givematlib.LoadText(textId)
+		if err != nil {
+			log.Panic("Could not load text:", err)
+		}
+
+		knownLearnables, _ := learnablesStatus.ReadLearnableStatus(text.Language)
+
+		iter := textData.Append()
+		textData.Set(iter, []int{0, 1, 2}, []interface{}{
+			text.Title,
+			text.Language,
+			len(text.Unknown(knownLearnables)),
+		})
+	}
 }
 
 func createColumn(title string, id int) *gtk.TreeViewColumn {

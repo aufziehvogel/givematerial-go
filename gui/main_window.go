@@ -24,35 +24,15 @@ func Init(config *givematlib.ApplicationConfig) {
 	})
 
 	treeView, listStore := createTextsTable()
+	updateLanguagesTable(listStore)
 
 	b, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0)
 	win.Add(b)
 	b.SetVExpand(true)
 
-	// TODO: Re-generate table when learnables data has been updated
-	learnablesStatus := givematlib.StatusCacheNew()
-
-	texts, err := givematlib.ListTexts()
+	languages, err := loadLanguages()
 	if err != nil {
-		panic(err)
-	}
-
-	languages := make(map[string]struct{})
-	for _, textId := range texts {
-		text, err := givematlib.LoadText(textId)
-		if err != nil {
-			log.Panic("Could not load text:", err)
-		}
-
-		languages[text.Language] = struct{}{}
-		knownLearnables, _ := learnablesStatus.ReadLearnableStatus(text.Language)
-
-		iter := listStore.Append()
-		listStore.Set(iter, []int{0, 1, 2}, []interface{}{
-			text.Title,
-			text.Language,
-			len(text.Unknown(knownLearnables)),
-		})
+		log.Panic("Could not load languages", err)
 	}
 
 	scrollableTreelist, _ := gtk.ScrolledWindowNew(nil, nil)
@@ -60,7 +40,7 @@ func Init(config *givematlib.ApplicationConfig) {
 	scrollableTreelist.SetVExpand(true)
 
 	bSelection, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
-	for language, _ := range languages {
+	for language := range languages {
 		button, _ := gtk.ButtonNewWithLabel(language)
 
 		button.Connect("clicked", func(obj *gtk.Button) {
@@ -95,4 +75,23 @@ func Init(config *givematlib.ApplicationConfig) {
 	// Begin executing the GTK main loop.  This blocks until
 	// gtk.MainQuit() is run.
 	gtk.Main()
+}
+
+func loadLanguages() (map[string]struct{}, error) {
+	texts, err := givematlib.ListTexts()
+	if err != nil {
+		return nil, err
+	}
+
+	languages := make(map[string]struct{})
+	for _, textId := range texts {
+		text, err := givematlib.LoadText(textId)
+		if err != nil {
+			return nil, err
+		}
+
+		languages[text.Language] = struct{}{}
+	}
+
+	return languages, nil
 }
