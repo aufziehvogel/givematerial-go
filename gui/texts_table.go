@@ -3,6 +3,7 @@ package gui
 import (
 	"givematerial/givematlib"
 	"log"
+	"strings"
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -43,12 +44,12 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	treeView.AppendColumn(createColumn("Unknown Vocabulary", COLUMN_UNKNOWN_VOCAB_COUNT))
 
 	treeView.Connect("row-activated", func(tv *gtk.TreeView, path *gtk.TreePath, column *gtk.TreeViewColumn) {
-		iter, _ := filter.GetIter(path)
-		v, _ := filter.GetValue(iter, COLUMN_ID)
+		iter, _ := sort.GetIter(path)
+		v, _ := sort.GetValue(iter, COLUMN_ID)
 		gv, _ := v.GoValue()
 		textId := gv.(string)
 
-		v2, _ := filter.GetValue(iter, COLUMN_UNKNOWN_VOCAB)
+		v2, _ := sort.GetValue(iter, COLUMN_UNKNOWN_VOCAB)
 		gv2, _ := v2.GoValue()
 		unknownVocab := gv2.(string)
 
@@ -104,10 +105,12 @@ func updateLanguagesTable(textData *gtk.ListStore) {
 		knownLearnables, _ := learnablesStatus.ReadLearnableStatus(text.Language)
 
 		iter := textData.Append()
-		textData.Set(iter, []int{0, 1, 2}, []interface{}{
+		textData.Set(iter, []int{0, 1, 2, 3, 4}, []interface{}{
+			textId,
 			text.Title,
 			text.Language,
 			len(text.Unknown(knownLearnables)),
+			strings.Join(text.Unknown(knownLearnables), ", "),
 		})
 	}
 }
