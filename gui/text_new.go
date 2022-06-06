@@ -24,12 +24,7 @@ func createNewTextWindow() (*gtk.Window, error) {
 		return nil, err
 	}
 
-	titleField, err := gtk.TextViewNew()
-	if err != nil {
-		return nil, err
-	}
-
-	textLabel, err := gtk.LabelNew("Text")
+	titleField, err := gtk.EntryNew()
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +41,7 @@ func createNewTextWindow() (*gtk.Window, error) {
 		return nil, err
 	}
 	saveButton.Connect("clicked", func(obj *gtk.Button) {
-		title, err := ReadTextViewContent(titleField)
+		title, err := titleField.GetText()
 		if err != nil {
 			return
 		}
@@ -68,9 +63,8 @@ func createNewTextWindow() (*gtk.Window, error) {
 
 	grid.Attach(titleLabel, 0, 0, 1, 1)
 	grid.AttachNextTo(titleField, titleLabel, gtk.POS_RIGHT, 1, 1)
-	grid.AttachNextTo(textLabel, titleLabel, gtk.POS_BOTTOM, 1, 1)
-	grid.AttachNextTo(textField, textLabel, gtk.POS_RIGHT, 1, 1)
-	grid.AttachNextTo(saveButton, textLabel, gtk.POS_BOTTOM, 2, 1)
+	grid.AttachNextTo(textField, titleLabel, gtk.POS_BOTTOM, 2, 1)
+	grid.AttachNextTo(saveButton, textField, gtk.POS_BOTTOM, 2, 1)
 
 	w.Add(grid)
 
