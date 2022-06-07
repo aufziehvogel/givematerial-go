@@ -19,6 +19,7 @@ const (
 	COLUMN_LANGUAGE
 	COLUMN_UNKNOWN_VOCAB_COUNT
 	COLUMN_UNKNOWN_VOCAB
+	COLUMN_KNOWN_VOCAB_PERCENT
 )
 
 func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
@@ -30,6 +31,7 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 		glib.TYPE_STRING,
 		glib.TYPE_INT,
 		glib.TYPE_STRING,
+		glib.TYPE_DOUBLE,
 	)
 	textTableModel = listStore
 
@@ -42,6 +44,16 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	treeView.AppendColumn(createColumn("Title", COLUMN_TITLE))
 	treeView.AppendColumn(createColumn("Language", COLUMN_LANGUAGE))
 	treeView.AppendColumn(createColumn("Unknown Vocabulary", COLUMN_UNKNOWN_VOCAB_COUNT))
+
+	progressRenderer, _ := gtk.CellRendererProgressNew()
+	progressColumn, _ := gtk.TreeViewColumnNewWithAttribute(
+		"Vocabulary Known",
+		progressRenderer,
+		"value",
+		COLUMN_KNOWN_VOCAB_PERCENT,
+	)
+	progressColumn.SetSortColumnID(COLUMN_KNOWN_VOCAB_PERCENT)
+	treeView.AppendColumn(progressColumn)
 
 	treeView.Connect("row-activated", func(tv *gtk.TreeView, path *gtk.TreePath, column *gtk.TreeViewColumn) {
 		iter, _ := sort.GetIter(path)
@@ -87,7 +99,7 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	return treeView, listStore
 }
 
-func updateLanguagesTable(textData *gtk.ListStore) {
+func updateTextsTable(textData *gtk.ListStore) {
 	textData.Clear()
 
 	texts, err := givematlib.ListTexts()
@@ -105,12 +117,20 @@ func updateLanguagesTable(textData *gtk.ListStore) {
 		knownLearnables, _ := learnablesStatus.ReadLearnableStatus(text.Language)
 
 		iter := textData.Append()
-		textData.Set(iter, []int{0, 1, 2, 3, 4}, []interface{}{
+		numUnknown := len(text.Unknown(knownLearnables))
+		numLearnables := len(text.Learnables)
+
+		percentageKnown := 0
+		if numLearnables != 0 {
+			percentageKnown = 100 * (numLearnables - numUnknown) / numLearnables
+		}
+		textData.Set(iter, []int{0, 1, 2, 3, 4, 5}, []interface{}{
 			textId,
 			text.Title,
 			text.Language,
 			len(text.Unknown(knownLearnables)),
 			strings.Join(text.Unknown(knownLearnables), ", "),
+			percentageKnown,
 		})
 	}
 }

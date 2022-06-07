@@ -24,7 +24,7 @@ func Init(config *givematlib.ApplicationConfig) {
 	})
 
 	treeView, listStore := createTextsTable()
-	updateLanguagesTable(listStore)
+	updateTextsTable(listStore)
 
 	b, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0)
 	win.Add(b)

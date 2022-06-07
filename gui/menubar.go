@@ -67,7 +67,7 @@ func createActionMenu(config *givematlib.ApplicationConfig) (*gtk.Menu, *gtk.Men
 	refreshTableItem.Connect("activate", func() {
 		log.Print("Refreshing table")
 
-		updateLanguagesTable(textTableModel)
+		updateTextsTable(textTableModel)
 	})
 	menu.Append(refreshTableItem)
 
