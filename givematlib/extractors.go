@@ -10,6 +10,7 @@ type Extractor interface {
 }
 
 type KanjiExtractor struct{}
+type ExternalExtractor struct{}
 
 func (e *KanjiExtractor) ExtractLearnables(text string) []string {
 	var kanji []string
@@ -27,6 +28,10 @@ func (e *KanjiExtractor) ExtractLearnables(text string) []string {
 	}
 
 	return kanji
+}
+
+func (e *ExternalExtractor) ExtractLearnables(text string) []string {
+	// TODO: Call external program to run extraction on text
 }
 
 func hexToInt(hex string) int {
