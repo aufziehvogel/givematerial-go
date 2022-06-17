@@ -1,6 +1,7 @@
 package givematlib
 
 import (
+	"log"
 	"os/exec"
 	"strings"
 )
@@ -38,4 +39,22 @@ func (e *ExternalExtractor) ExtractLearnables(text string) []string {
 	}
 
 	return strings.Split(string(output), "\n")
+}
+
+func GetExtractorForLanguage(language Language) Extractor {
+	switch language {
+	case LANG_JAPANESE:
+		return new(KanjiExtractor)
+	case LANG_SPANISH:
+		return &ExternalExtractor{
+			programCall: []string{"python", "contrib/lemmatizer.py", "es"},
+		}
+	case LANG_CROATIAN:
+		return &ExternalExtractor{
+			programCall: []string{"python", "contrib/lemmatizer.py", "hr"},
+		}
+	default:
+		log.Panicf("Language %v is not supported", language)
+		return nil
+	}
 }

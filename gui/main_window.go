@@ -41,7 +41,7 @@ func Init(config *givematlib.ApplicationConfig) {
 
 	bSelection, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
 	for language := range languages {
-		button, _ := gtk.ButtonNewWithLabel(language)
+		button, _ := gtk.ButtonNewWithLabel(language.ShortCode())
 
 		button.Connect("clicked", func(obj *gtk.Button) {
 			label, _ := obj.GetLabel()
@@ -77,20 +77,21 @@ func Init(config *givematlib.ApplicationConfig) {
 	gtk.Main()
 }
 
-func loadLanguages() (map[string]struct{}, error) {
+func loadLanguages() (map[givematlib.Language]struct{}, error) {
 	texts, err := givematlib.ListTexts()
 	if err != nil {
 		return nil, err
 	}
 
-	languages := make(map[string]struct{})
+	languages := make(map[givematlib.Language]struct{})
 	for _, textId := range texts {
 		text, err := givematlib.LoadText(textId)
 		if err != nil {
 			return nil, err
 		}
 
-		languages[text.Language] = struct{}{}
+		language := givematlib.MakeLanguageFromShortCode(text.Language)
+		languages[language] = struct{}{}
 	}
 
 	return languages, nil

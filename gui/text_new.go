@@ -24,10 +24,27 @@ func createNewTextWindow() (*gtk.Window, error) {
 		return nil, err
 	}
 
+	languageLabel, err := gtk.LabelNew("Language")
+	if err != nil {
+		return nil, err
+	}
+
 	titleField, err := gtk.EntryNew()
 	if err != nil {
 		return nil, err
 	}
+
+	languages, err := loadLanguages()
+	if err != nil {
+		return nil, err
+	}
+	languagesListStore, err := newLanguagesListStore(languages)
+	if err != nil {
+		return nil, err
+	}
+
+	languageField, err := gtk.ComboBoxNewWithModelAndEntry(languagesListStore)
+	languageField.SetEntryTextColumn(0)
 
 	textField, err := gtk.TextViewNew()
 	if err != nil {
@@ -50,10 +67,20 @@ func createNewTextWindow() (*gtk.Window, error) {
 			return
 		}
 
+		iter, err := languageField.GetActiveIter()
+		model, err := languageField.GetModel()
+		v, _ := model.ToTreeModel().GetValue(iter, 0)
+		gv, _ := v.GoValue()
+		language := givematlib.MakeLanguageFromShortCode(gv.(string))
+
+		extractor := givematlib.GetExtractorForLanguage(language)
+		learnables := extractor.ExtractLearnables(text)
+
 		t := givematlib.Text{
-			Title:    title,
-			Fulltext: text,
-			Language: "todo",
+			Title:      title,
+			Fulltext:   text,
+			Language:   language.ShortCode(),
+			Learnables: learnables,
 		}
 		givematlib.SaveText(t)
 		// TODO: Emit a textAdded event
@@ -63,7 +90,9 @@ func createNewTextWindow() (*gtk.Window, error) {
 
 	grid.Attach(titleLabel, 0, 0, 1, 1)
 	grid.AttachNextTo(titleField, titleLabel, gtk.POS_RIGHT, 1, 1)
-	grid.AttachNextTo(textField, titleLabel, gtk.POS_BOTTOM, 2, 1)
+	grid.AttachNextTo(languageLabel, titleLabel, gtk.POS_BOTTOM, 1, 1)
+	grid.AttachNextTo(languageField, languageLabel, gtk.POS_RIGHT, 1, 1)
+	grid.AttachNextTo(textField, languageLabel, gtk.POS_BOTTOM, 2, 1)
 	grid.AttachNextTo(saveButton, textField, gtk.POS_BOTTOM, 2, 1)
 
 	w.Add(grid)
