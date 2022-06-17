@@ -107,7 +107,7 @@ func updateTextsTable(textData *gtk.ListStore) {
 		panic(err)
 	}
 
-	learnablesStatus := givematlib.StatusCacheNew()
+	learnablesStatus := givematlib.NewStatusCache()
 	for _, textId := range texts {
 		text, err := givematlib.LoadText(textId)
 		if err != nil {

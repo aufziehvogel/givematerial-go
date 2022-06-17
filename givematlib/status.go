@@ -12,7 +12,7 @@ type StatusCache struct {
 	cache map[string][]string
 }
 
-func StatusCacheNew() StatusCache {
+func NewStatusCache() StatusCache {
 	return StatusCache{
 		cache: make(map[string][]string),
 	}
