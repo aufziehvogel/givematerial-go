@@ -10,8 +10,6 @@ import (
 )
 
 var selectedLanguage string
-var languageTableFilter *gtk.TreeModelFilter
-var textTableModel *gtk.ListStore
 
 const (
 	COLUMN_ID = iota
@@ -22,9 +20,23 @@ const (
 	COLUMN_KNOWN_VOCAB_PERCENT
 )
 
-func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
-	treeView, _ := gtk.TreeViewNew()
+type TextTableModel struct {
+	rawListStore        *gtk.ListStore
+	filterableListStore *gtk.TreeModelFilter
+	sortableListStore   *gtk.TreeModelSort
+}
 
+type TextTableView struct {
+	treeView           *gtk.TreeView
+	scrollableTreeView *gtk.ScrolledWindow
+}
+
+type TextTableController struct {
+	model *TextTableModel
+	view  *TextTableView
+}
+
+func newTextTableModel() *TextTableModel {
 	listStore, _ := gtk.ListStoreNew(
 		glib.TYPE_STRING,
 		glib.TYPE_STRING,
@@ -33,14 +45,22 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 		glib.TYPE_STRING,
 		glib.TYPE_DOUBLE,
 	)
-	textTableModel = listStore
 
 	filter, _ := listStore.FilterNew(nil)
 	filter.SetVisibleFunc(filterByLanguage)
 	sort, _ := gtk.TreeModelSortNew(filter)
-	languageTableFilter = filter
 
-	treeView.SetModel(sort)
+	return &TextTableModel{
+		rawListStore:        listStore,
+		filterableListStore: filter,
+		sortableListStore:   sort,
+	}
+}
+
+func newTextTableView(model *TextTableModel) *TextTableView {
+	treeView, _ := gtk.TreeViewNew()
+
+	treeView.SetModel(model.sortableListStore)
 	treeView.AppendColumn(createColumn("Title", COLUMN_TITLE))
 	treeView.AppendColumn(createColumn("Language", COLUMN_LANGUAGE))
 	treeView.AppendColumn(createColumn("Unknown Vocabulary", COLUMN_UNKNOWN_VOCAB_COUNT))
@@ -55,13 +75,27 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 	progressColumn.SetSortColumnID(COLUMN_KNOWN_VOCAB_PERCENT)
 	treeView.AppendColumn(progressColumn)
 
-	treeView.Connect("row-activated", func(tv *gtk.TreeView, path *gtk.TreePath, column *gtk.TreeViewColumn) {
-		iter, _ := sort.GetIter(path)
-		v, _ := sort.GetValue(iter, COLUMN_ID)
+	selection, _ := treeView.GetSelection()
+	selection.SetMode(gtk.SELECTION_SINGLE)
+
+	scrollableTreelist, _ := gtk.ScrolledWindowNew(nil, nil)
+	scrollableTreelist.Add(treeView)
+	scrollableTreelist.SetVExpand(true)
+
+	return &TextTableView{
+		treeView:           treeView,
+		scrollableTreeView: scrollableTreelist,
+	}
+}
+
+func newTextTableController(model *TextTableModel, view *TextTableView) *TextTableController {
+	view.treeView.Connect("row-activated", func(tv *gtk.TreeView, path *gtk.TreePath, column *gtk.TreeViewColumn) {
+		iter, _ := model.sortableListStore.GetIter(path)
+		v, _ := model.sortableListStore.GetValue(iter, COLUMN_ID)
 		gv, _ := v.GoValue()
 		textId := gv.(string)
 
-		v2, _ := sort.GetValue(iter, COLUMN_UNKNOWN_VOCAB)
+		v2, _ := model.sortableListStore.GetValue(iter, COLUMN_UNKNOWN_VOCAB)
 		gv2, _ := v2.GoValue()
 		unknownVocab := gv2.(string)
 
@@ -93,14 +127,15 @@ func createTextsTable() (*gtk.TreeView, *gtk.ListStore) {
 		win.ShowAll()
 	})
 
-	selection, _ := treeView.GetSelection()
-	selection.SetMode(gtk.SELECTION_SINGLE)
-
-	return treeView, listStore
+	return &TextTableController{
+		model: model,
+		view:  view,
+	}
 }
 
-func updateTextsTable(textData *gtk.ListStore) {
-	textData.Clear()
+func (c *TextTableController) updateTextsTable() {
+	listStore := c.model.rawListStore
+	listStore.Clear()
 
 	texts, err := givematlib.ListTexts()
 	if err != nil {
@@ -116,7 +151,7 @@ func updateTextsTable(textData *gtk.ListStore) {
 
 		knownLearnables, _ := learnablesStatus.ReadLearnableStatus(text.Language)
 
-		iter := textData.Append()
+		iter := listStore.Append()
 		numUnknown := len(text.Unknown(knownLearnables))
 		numLearnables := len(text.Learnables)
 
@@ -124,7 +159,7 @@ func updateTextsTable(textData *gtk.ListStore) {
 		if numLearnables != 0 {
 			percentageKnown = 100 * (numLearnables - numUnknown) / numLearnables
 		}
-		textData.Set(iter, []int{0, 1, 2, 3, 4, 5}, []interface{}{
+		listStore.Set(iter, []int{0, 1, 2, 3, 4, 5}, []interface{}{
 			textId,
 			text.Title,
 			text.Language,

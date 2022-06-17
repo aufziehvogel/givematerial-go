@@ -8,6 +8,7 @@ import (
 )
 
 var applicationStatusBar *gtk.Statusbar
+var textTableController *TextTableController
 
 func Init(config *givematlib.ApplicationConfig) {
 	gtk.Init(nil)
@@ -23,8 +24,11 @@ func Init(config *givematlib.ApplicationConfig) {
 		gtk.MainQuit()
 	})
 
-	treeView, listStore := createTextsTable()
-	updateTextsTable(listStore)
+	model := newTextTableModel()
+	view := newTextTableView(model)
+	textTableController := newTextTableController(model, view)
+
+	textTableController.updateTextsTable()
 
 	b, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0)
 	win.Add(b)
@@ -35,10 +39,6 @@ func Init(config *givematlib.ApplicationConfig) {
 		log.Panic("Could not load languages", err)
 	}
 
-	scrollableTreelist, _ := gtk.ScrolledWindowNew(nil, nil)
-	scrollableTreelist.Add(treeView)
-	scrollableTreelist.SetVExpand(true)
-
 	bSelection, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
 	for language := range languages {
 		button, _ := gtk.ButtonNewWithLabel(language.ShortCode())
@@ -46,7 +46,7 @@ func Init(config *givematlib.ApplicationConfig) {
 		button.Connect("clicked", func(obj *gtk.Button) {
 			label, _ := obj.GetLabel()
 			selectedLanguage = label
-			languageTableFilter.Refilter()
+			model.filterableListStore.Refilter()
 		})
 		bSelection.Add(button)
 	}
@@ -63,7 +63,7 @@ func Init(config *givematlib.ApplicationConfig) {
 
 	b.PackStart(menuBar, false, false, 0)
 	b.PackStart(bSelection, false, false, 0)
-	b.PackStart(scrollableTreelist, true, true, 0)
+	b.PackStart(view.scrollableTreeView, true, true, 0)
 	b.PackStart(statusBar, false, false, 0)
 
 	// Set the default window size.
