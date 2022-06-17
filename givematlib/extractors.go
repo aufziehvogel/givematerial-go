@@ -1,11 +1,18 @@
 package givematlib
 
+import (
+	"os/exec"
+	"strings"
+)
+
 type Extractor interface {
 	ExtractLearnables(text string) []string
 }
 
 type KanjiExtractor struct{}
-type ExternalExtractor struct{}
+type ExternalExtractor struct {
+	programCall []string
+}
 
 func (e *KanjiExtractor) ExtractLearnables(text string) []string {
 	var kanji []string
@@ -20,6 +27,15 @@ func (e *KanjiExtractor) ExtractLearnables(text string) []string {
 }
 
 func (e *ExternalExtractor) ExtractLearnables(text string) []string {
-	// TODO: Call external program to run extraction on text
-	return []string{}
+	commandName := e.programCall[0]
+	args := e.programCall[1:]
+	cmd := exec.Command(commandName, args...)
+
+	cmd.Stdin = strings.NewReader(text)
+	output, err := cmd.Output()
+	if err != nil {
+		return []string{}
+	}
+
+	return strings.Split(string(output), "\n")
 }
