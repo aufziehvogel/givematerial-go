@@ -27,8 +27,10 @@ type TextTableModel struct {
 }
 
 type TextTableView struct {
+	container          *gtk.Box
 	treeView           *gtk.TreeView
 	scrollableTreeView *gtk.ScrolledWindow
+	languageButtons    []*gtk.Button
 }
 
 type TextTableController struct {
@@ -57,7 +59,13 @@ func newTextTableModel() *TextTableModel {
 	}
 }
 
-func newTextTableView(model *TextTableModel) *TextTableView {
+func newTextTableView(
+	model *TextTableModel,
+	languages map[givematlib.Language]struct{},
+) *TextTableView {
+	container, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0)
+	container.SetVExpand(true)
+
 	treeView, _ := gtk.TreeViewNew()
 
 	treeView.SetModel(model.sortableListStore)
@@ -82,13 +90,34 @@ func newTextTableView(model *TextTableModel) *TextTableView {
 	scrollableTreelist.Add(treeView)
 	scrollableTreelist.SetVExpand(true)
 
+	var languageButtons []*gtk.Button
+	bSelection, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
+	for language := range languages {
+		button, _ := gtk.ButtonNewWithLabel(language.ShortCode())
+		bSelection.Add(button)
+		languageButtons = append(languageButtons, button)
+	}
+
+	container.PackStart(bSelection, false, false, 0)
+	container.PackStart(scrollableTreelist, true, true, 0)
+
 	return &TextTableView{
+		container:          container,
+		languageButtons:    languageButtons,
 		treeView:           treeView,
 		scrollableTreeView: scrollableTreelist,
 	}
 }
 
 func newTextTableController(model *TextTableModel, view *TextTableView) *TextTableController {
+	for _, button := range view.languageButtons {
+		button.Connect("clicked", func(obj *gtk.Button) {
+			label, _ := obj.GetLabel()
+			selectedLanguage = label
+			model.filterableListStore.Refilter()
+		})
+	}
+
 	view.treeView.Connect("row-activated", func(tv *gtk.TreeView, path *gtk.TreePath, column *gtk.TreeViewColumn) {
 		iter, _ := model.sortableListStore.GetIter(path)
 		v, _ := model.sortableListStore.GetValue(iter, COLUMN_ID)
@@ -134,6 +163,8 @@ func newTextTableController(model *TextTableModel, view *TextTableView) *TextTab
 }
 
 func (c *TextTableController) updateTextsTable() {
+	log.Print("Updating texts table")
+
 	listStore := c.model.rawListStore
 	listStore.Clear()
 

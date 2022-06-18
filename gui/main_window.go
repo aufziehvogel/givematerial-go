@@ -24,32 +24,20 @@ func Init(config *givematlib.ApplicationConfig) {
 		gtk.MainQuit()
 	})
 
-	model := newTextTableModel()
-	view := newTextTableView(model)
-	textTableController := newTextTableController(model, view)
+	languages, err := loadLanguages()
+	if err != nil {
+		log.Panic("Could not load languages", err)
+	}
 
+	model := newTextTableModel()
+	view := newTextTableView(model, languages)
+	textTableController = newTextTableController(model, view)
 	textTableController.updateTextsTable()
 
 	b, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0)
 	win.Add(b)
 	b.SetVExpand(true)
 
-	languages, err := loadLanguages()
-	if err != nil {
-		log.Panic("Could not load languages", err)
-	}
-
-	bSelection, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
-	for language := range languages {
-		button, _ := gtk.ButtonNewWithLabel(language.ShortCode())
-
-		button.Connect("clicked", func(obj *gtk.Button) {
-			label, _ := obj.GetLabel()
-			selectedLanguage = label
-			model.filterableListStore.Refilter()
-		})
-		bSelection.Add(button)
-	}
 	menuBar, err := createMenuBar(config)
 	if err != nil {
 		log.Panic("Could not create menu bar", err)
@@ -62,8 +50,7 @@ func Init(config *givematlib.ApplicationConfig) {
 	applicationStatusBar = statusBar
 
 	b.PackStart(menuBar, false, false, 0)
-	b.PackStart(bSelection, false, false, 0)
-	b.PackStart(view.scrollableTreeView, true, true, 0)
+	b.PackStart(view.container, true, true, 0)
 	b.PackStart(statusBar, false, false, 0)
 
 	// Set the default window size.
